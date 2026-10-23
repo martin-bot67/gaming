@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tiny Bunker</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="wrap">
+  <canvas id="c" width="450" height="800" aria-label="Tiny Bunker game"></canvas>
+  <div id="bar">
+    <button id="bUp" aria-label="Elevator up">Up</button>
+    <button id="bDown" aria-label="Elevator down">Down</button>
+    <button data-act="open-build">Build</button>
+    <button data-act="open-up">Upgrade</button>
+    <button data-act="open-save">Save</button>
+  </div>
+  <div id="modal" hidden></div>
+</div>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
