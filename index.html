@@ -16,6 +16,17 @@
     <button data-act="open-up">Upgrade</button>
     <button data-act="open-save">Save</button>
   </div>
+  <div id="admin">
+    <button id="admin-toggle" aria-expanded="false" aria-controls="admin-panel">Admin</button>
+    <div id="admin-panel" hidden>
+      <h2>Admin panel</h2>
+      <button data-admin-act="add-scrap">Add 1,000,000 scrap</button>
+      <button data-admin-act="add-batteries">Add 1,000,000 batteries</button>
+      <button data-admin-act="spawn-survivor">Spawn survivor</button>
+      <button data-admin-act="complete-build">Complete build</button>
+      <button data-admin-act="reset-game">Reset game</button>
+    </div>
+  </div>
   <div id="modal" hidden></div>
 </div>
 <script type="module" src="js/main.js"></script>

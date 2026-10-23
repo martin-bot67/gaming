@@ -18,3 +18,9 @@ button:disabled{opacity:.4;cursor:default}
 .row{display:flex;gap:8px;margin-top:10px}
 select,textarea{width:100%;background:#0e0c0a;border:2px solid var(--line);padding:8px}
 textarea{height:110px;font-size:11px}
+#admin{position:absolute;z-index:2;left:8px;bottom:72px}
+#admin-toggle{width:auto;min-width:72px;padding:8px 10px;flex:none;border-color:var(--hi);background:#251e14}
+#admin-panel{position:absolute;left:0;bottom:calc(100% + 8px);width:190px;padding:10px;background:var(--panel);border:2px solid var(--hi);box-shadow:0 4px 16px #000b}
+#admin-panel[hidden]{display:none}
+#admin-panel h2{margin:0 0 8px;color:var(--hi);font-size:14px}
+#admin-panel button{display:block;width:100%;margin-top:6px;padding:8px 4px;flex:none;font-size:11px}

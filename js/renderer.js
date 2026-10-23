@@ -1,5 +1,5 @@
 import { S, rt, fx, walkers, outs, W, H, FH, SX, TYPES, TK, rnd, pick } from './models.js';
-import { income } from './systems.js';
+import { income, housingCapacity, isPowered, POWER_PER_ENERGY_ROOM, poweredRoomCount, powerDemand } from './systems.js';
 
 /* ================= UI / RENDERER ================= */
 export const cv = document.getElementById('c');
@@ -65,7 +65,12 @@ function drawFloor(f, t) {
   list.forEach(s => { const w = walkers[s.id] || { x: 20 }; figure(w.x, fy - 21, s.id, t, w.moving, w.dir); });
   const lab = 'B' + f.depth + ' ' + f.name; ctx.font = 'bold 11px "Courier New",monospace';
   R(12, y + 9, ctx.measureText(lab).width + 10, 14, '#000b'); R(12, y + 9, 3, 14, res ? '#c9a070' : '#ffffff88'); txt(lab, 19, y + 20, 11, '#f1e6cc');
-  if (!res) { R(SX - 72, y + 9, 56, 14, '#000b'); txt('+' + income(f).toFixed(1) + '/s', SX - 20, y + 20, 10, '#ffe9a8', 'right'); }
+  if (!res) {
+    R(SX - 72, y + 9, 56, 14, '#000b');
+    if (f.type === 'ENERGY') txt('+' + POWER_PER_ENERGY_ROOM + ' POWER', SX - 20, y + 20, 9, '#ffe36b', 'right');
+    else if (isPowered(f)) txt('+' + income(f).toFixed(1) + '/s', SX - 20, y + 20, 10, '#ffe9a8', 'right');
+    else txt('NO POWER', SX - 20, y + 20, 9, '#ff8c75', 'right');
+  }
   txt(list.length + '/5', SX - 20, y + FH - 6, 10, '#fffc', 'right');
 }
 export function draw(t) {
@@ -118,8 +123,8 @@ export function draw(t) {
   R(0, 0, W, 42, '#000d'); R(0, 42, W, 2, '#e0a030');
   R(10, 7, 10, 10, '#b9b2a0'); R(13, 10, 4, 4, '#0e0c0a'); txt('' + Math.floor(S.scrap), 26, 17, 14, '#f0c060');
   R(10, 25, 13, 8, '#6fd3ff'); R(23, 27, 2, 4, '#6fd3ff'); R(12, 27, 4, 4, '#ffffff66'); txt('' + S.bat, 30, 33, 13, '#6fd3ff');
-  txt('+' + rt.incPS.toFixed(1) + '/s', W - 10, 17, 13, '#a8d67a', 'right');
-  txt(S.surv.length + ' survivors  depth B' + nF, W - 10, 34, 11, '#cfc4b0', 'right');
+  txt('+' + rt.incPS.toFixed(1) + '/s  PWR ' + poweredRoomCount() + '/' + powerDemand(), W - 10, 17, 13, '#a8d67a', 'right');
+  txt(S.surv.length + '/' + housingCapacity() + ' survivors  depth B' + nF, W - 10, 34, 11, '#cfc4b0', 'right');
   if (rt.toast.t > 0) { R(40, 54, W - 80, 28, '#000d'); R(40, 54, 3, 28, '#e0a030'); txt(rt.toast.s, W / 2, 73, 12, '#fff', 'center'); }
   if (!nF && !S.build) txt('Open Build to dig your first floor.', W / 2, 112, 12, '#ffd070', 'center');
 }

@@ -1,8 +1,28 @@
-import { S, rt, keys, TK, H, FH, cost, buildTime } from './models.js';
-import { startBuild, rushBuild, say, elevSpeed, tipMult, extHtml, autoHtml, importSave, hardReset } from './systems.js';
+import { S, rt, keys, TK, H, FH, clamp, cost, buildTime, scrollCamera } from './models.js';
+import { startBuild, rushBuild, say, elevSpeed, tipMult, extHtml, autoHtml, EXT_COST, AUTO_COST, importSave, hardReset, adminAddScrap, adminAddBatteries, adminSpawnSurvivor, adminCompleteBuild } from './systems.js';
 import { cv } from './renderer.js';
 
 const modal = document.getElementById('modal');
+const adminToggle = document.getElementById('admin-toggle');
+const adminPanel = document.getElementById('admin-panel');
+
+adminToggle.addEventListener('click', () => {
+  adminPanel.hidden = !adminPanel.hidden;
+  adminToggle.setAttribute('aria-expanded', String(!adminPanel.hidden));
+});
+adminPanel.addEventListener('click', ev => {
+  const action = ev.target.closest('[data-admin-act]');
+  if (!action) return;
+  switch (action.dataset.adminAct) {
+    case 'add-scrap': adminAddScrap(); break;
+    case 'add-batteries': adminAddBatteries(); break;
+    case 'spawn-survivor': adminSpawnSurvivor(); break;
+    case 'complete-build': adminCompleteBuild(); break;
+    case 'reset-game':
+      if (confirm('Erase the whole bunker?')) hardReset();
+      break;
+  }
+});
 
 /* modal panels (DOM overlay) */
 function openPanel(kind) {
@@ -79,7 +99,30 @@ function dragTo(e) {
   const wy = (e.clientY - r.top) * (H / r.height) + rt.camY;
   rt.goal = clamp(Math.round(wy / FH + 0.5), 0, S.floors.length);
 }
-let dragging = false;
-cv.addEventListener('pointerdown', e => { dragging = true; dragTo(e); });
-cv.addEventListener('pointermove', e => { if (dragging) dragTo(e); });
-addEventListener('pointerup', () => dragging = false);
+let dragging = false, touch = null;
+cv.addEventListener('pointerdown', e => {
+  if (e.pointerType === 'touch') {
+    touch = { id: e.pointerId, y: e.clientY, lastY: e.clientY, panning: false };
+  } else {
+    dragging = true;
+    dragTo(e);
+  }
+});
+cv.addEventListener('pointermove', e => {
+  if (touch && e.pointerId === touch.id) {
+    if (Math.abs(e.clientY - touch.y) > 6) touch.panning = true;
+    if (touch.panning) scrollCamera(touch.lastY - e.clientY);
+    touch.lastY = e.clientY;
+  } else if (dragging) {
+    dragTo(e);
+  }
+});
+const endPointer = e => {
+  if (touch && e.pointerId === touch.id) {
+    if (!touch.panning) dragTo(e);
+    touch = null;
+  }
+  dragging = false;
+};
+addEventListener('pointerup', endPointer);
+addEventListener('pointercancel', endPointer);

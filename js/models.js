@@ -11,6 +11,12 @@ export const TK = Object.keys(TYPES);
 export const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
 export const pick = a => a[Math.floor(Math.random() * a.length)];
 export const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+export const scrollCamera = delta => {
+  const min = -FH - 40;
+  const depth = S.floors.length + (S.build ? 1 : 0);
+  const max = Math.max(min, (depth + 1) * FH - H);
+  rt.camY = clamp(rt.camY + delta, min, max);
+};
 export const cost = d => Math.round(1000 * Math.pow(1.25, d));
 export const buildTime = d => 8 + d * 4;
 export const FN = ['Rex', 'Mara', 'Jun', 'Ola', 'Tess', 'Brock', 'Ivy', 'Dax', 'Nell', 'Kit', 'Sol', 'Vera'];

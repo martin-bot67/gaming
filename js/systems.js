@@ -5,6 +5,20 @@ export let spawnT = 2;
 export const say = s => { rt.toast = { t: 2.5, s }; };
 export const floorById = id => S.floors.find(f => f.id === id);
 export const count = (fid, key) => S.surv.filter(s => s[key] === fid).length;
+export const BEDS_PER_RESIDENTIAL_FLOOR = 5;
+export const POWER_PER_ENERGY_ROOM = 3;
+export const housingCapacity = () => S.floors.filter(f => f.cat === 'RESIDENTIAL').length * BEDS_PER_RESIDENTIAL_FLOOR;
+export const housingUsed = () => S.surv.length + S.elev.pax.length;
+const productiveFloors = () => S.floors
+  .filter(f => f.cat === 'COMMERCIAL' && f.type !== 'ENERGY')
+  .sort((a, b) => a.depth - b.depth);
+export const energyCapacity = () => S.floors.filter(f => f.cat === 'COMMERCIAL' && f.type === 'ENERGY').length * POWER_PER_ENERGY_ROOM;
+export const powerDemand = () => productiveFloors().length;
+export const poweredRoomCount = () => Math.min(productiveFloors().length, energyCapacity());
+export const isPowered = f => {
+  if (f.cat !== 'COMMERCIAL' || f.type === 'ENERGY') return false;
+  return productiveFloors().slice(0, energyCapacity()).some(room => room.id === f.id);
+};
 export const income = f => S.surv.filter(s => s.assignedJobFloorId === f.id)
   .reduce((a, s) => a + (1 + s.stats[f.type] * 0.2) * (s.dreamFloorType === f.type ? 1.5 : 1), 0) * (1 + f.depth * 0.15) * 0.65;
 export const elevSpeed = () => 120 + 40 * S.elev.sl;
@@ -13,7 +27,7 @@ export const tipMult = () => 1 + 0.25 * S.elev.tl;
 export function assignAll() {
   for (const s of S.surv) {
     if (!floorById(s.assignedResidenceFloorId)) {
-      const f = S.floors.find(f => f.cat === 'RESIDENTIAL' && count(f.id, 'assignedResidenceFloorId') < 5);
+      const f = S.floors.find(f => f.cat === 'RESIDENTIAL' && count(f.id, 'assignedResidenceFloorId') < BEDS_PER_RESIDENTIAL_FLOOR);
       s.assignedResidenceFloorId = f ? f.id : null;
     }
     if (!floorById(s.assignedJobFloorId)) {
@@ -48,8 +62,21 @@ export function finishBuild() {
   else { f.cat = 'COMMERCIAL'; f.type = b.kind; f.name = pick(TYPES[b.kind].n); }
   S.floors.push(f); assignAll(); say('B' + b.depth + ' ready: ' + f.name);
 }
+export function adminAddScrap() { S.scrap += 1000000; say('Added 1,000,000 scrap.'); }
+export function adminAddBatteries() { S.bat += 1000000; say('Added 1,000,000 batteries.'); }
+export function adminSpawnSurvivor() {
+  if (housingUsed() >= housingCapacity()) return say('No empty bunks. Build a residential floor.');
+  S.surv.push(mkSurvivor());
+  assignAll();
+  say('Survivor spawned.');
+}
+export function adminCompleteBuild() {
+  if (!S.build) return say('No build in progress.');
+  finishBuild();
+}
 
 export function deliver(p) {
+  if (S.surv.length >= housingCapacity()) return say('No empty bunks. Build a residential floor.');
   const e = S.elev, t = p.target;
   const tip = Math.round((15 + 10 * t) * tipMult());
   S.scrap += tip; S.delivered++;
@@ -78,20 +105,20 @@ export function walk(o, tx, sp, dt) {
 }
 export function update(dt) {
   rt.incPS = 0;
-  S.floors.forEach(f => { if (f.cat === 'COMMERCIAL') rt.incPS += income(f); });
+  S.floors.forEach(f => { if (isPowered(f)) rt.incPS += income(f); });
   S.scrap += rt.incPS * dt;
   if (S.build && (S.build.left -= dt) <= 0) finishBuild();
   spawnT -= dt;
   if (spawnT <= 0) {
     spawnT = rnd(4, 8);
-    if (S.floors.length && S.queue.length < 4)
+    if (S.floors.length && S.queue.length < 4 && housingUsed() + S.queue.length < housingCapacity())
       S.queue.push({ id: S.nid++, target: rnd(1, S.floors.length), name: pick(FN), x: -10 });
   }
   const e = S.elev, max = S.floors.length, step = (elevSpeed() / FH) * dt;
   let dir = (keys.up ? -1 : 0) + (keys.down ? 1 : 0);
   if (dir) rt.goal = null;
   else if (e.auto && rt.goal == null) {
-    const full = e.pax.length >= cap();
+    const full = e.pax.length >= cap() || housingUsed() >= housingCapacity();
     if (e.pax.length && (full || !S.queue.length || Math.abs(e.pos) > 0.15)) rt.goal = e.pax.reduce((a, p) => Math.abs(p.target - e.pos) < Math.abs(a - e.pos) ? p.target : a, e.pax[0].target);
     else if (S.queue.length && !full) rt.goal = 0;
   }
@@ -102,8 +129,9 @@ export function update(dt) {
   e.pos = clamp(e.pos + dir * step, 0, max);
   const near = l => Math.abs(e.pos - l) < 0.15;
   for (const p of e.pax.filter(p => near(p.target))) { e.pax.splice(e.pax.indexOf(p), 1); deliver(p); }
-  S.queue.forEach((r, i) => { if (r.x == null) r.x = 20 + i * 56; walk(r, e.pax.length < cap() && near(0) && i === 0 ? SX + 14 : 20 + i * 56, 120, dt); });
-  if (e.pax.length < cap() && near(0) && S.queue.length && S.queue[0].x >= SX + 10) e.pax.push(S.queue.shift());
+  const canBoard = e.pax.length < cap() && housingUsed() < housingCapacity() && near(0);
+  S.queue.forEach((r, i) => { if (r.x == null) r.x = 20 + i * 56; walk(r, canBoard && i === 0 ? SX + 14 : 20 + i * 56, 120, dt); });
+  if (canBoard && S.queue.length && S.queue[0].x >= SX + 10) e.pax.push(S.queue.shift());
   S.surv.forEach(s => {
     const w = walkers[s.id] || (walkers[s.id] = { x: 18 + rnd(0, 150), tx: 0, wait: rnd(0, 3) });
     if (w.wait > 0) { w.wait -= dt; w.moving = false; }
@@ -131,4 +159,3 @@ export function importSave(str, silent) {
   if (!silent) say('Save imported.');
 }
 export function hardReset() { setState(fresh()); rt.goal = null; fx.length = 0; save(); say('Bunker reset.'); }
-
