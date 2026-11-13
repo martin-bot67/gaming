@@ -1,5 +1,5 @@
 import { S, rt, fx, walkers, outs, W, H, FH, SX, TYPES, TK, rnd, pick } from './models.js';
-import { income, housingCapacity, isPowered, POWER_PER_ENERGY_ROOM, poweredRoomCount, powerDemand } from './systems.js';
+import { income, housingCapacity, isPowered, POWER_PER_ENERGY_ROOM, poweredRoomCount, powerDemand, roomIncomeMultiplier } from './systems.js';
 
 /* ================= UI / RENDERER ================= */
 export const cv = document.getElementById('c');
@@ -10,14 +10,24 @@ const R = (x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(Math.round(x), Ma
 const dirt = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'); x.fillStyle = '#2a211a'; x.fillRect(0, 0, 64, 64); for (let i = 0; i < 260; i++) { x.fillStyle = pick(['#33281f', '#221a14', '#3b2e22', '#1c1511']); x.fillRect(rnd(0, 62), rnd(0, 62), rnd(1, 3), rnd(1, 2)); } return c; })();
 const stars = Array.from({ length: 40 }, () => ({ x: rnd(0, W), y: rnd(-FH - 210, -FH - 20), p: Math.random() * 6 }));
 const SKY = [[8, 40], [44, 70], [84, 36], [120, 96], [170, 58], [214, 80], [262, 44], [300, 66]];
-function figure(x, y, id, t, walk, dir) {
+function figure(x, y, id, t, walk, dir, rare = false) {
   const h = hue(id), ph = Math.sin(t * 18 + h), bob = walk ? Math.round(Math.abs(ph)) : Math.round(Math.sin(t * 2 + h) * 0.6);
   const sw = walk ? Math.round(ph * 2) : 0;
   const skin = ['#e8c9a0', '#c99a6b', '#8d5b3a', '#f1d5b5'][h % 4], hair = ['#2b1d14', '#7a4a1e', '#c8b070', '#666'][(h >> 2) % 4];
   R(x + 1 + sw, y + 19, 3, 4, '#1b1b22'); R(x + 4 - sw, y + 19, 3, 4, '#1b1b22');
-  R(x, y + 9 + bob, 8, 10, 'hsl(' + h + ',45%,50%)'); R(x, y + 9 + bob, 8, 2, '#ffffff33');
-  R(x + 1, y + 1 + bob, 6, 8, skin); R(x + 1, y + bob, 6, 3, hair);
-  const ex = dir < 0 ? -1 : dir > 0 ? 1 : 0; R(x + 2 + ex, y + 4 + bob, 1, 1, '#111'); R(x + 5 + ex, y + 4 + bob, 1, 1, '#111');
+  R(x, y + 9 + bob, 8, 10, rare ? '#ffd000' : 'hsl(' + h + ',45%,50%)');
+  R(x, y + 9 + bob, 8, 2, rare ? '#fff15a' : '#ffffff33');
+  R(x + 1, y + 1 + bob, 6, 8, rare ? '#ffdb00' : skin);
+  if (rare) {
+    R(x + 2, y + 3 + bob, 4, 4, '#090909');
+    R(x + 3, y + 4 + bob, 1, 1, '#ffd000'); R(x + 5, y + 4 + bob, 1, 1, '#ffd000');
+    R(x + 3, y + 6 + bob, 3, 1, '#ffd000');
+    R(x + 2, y - 2 + bob, 1, 1, '#fff15a'); R(x + 6, y - 2 + bob, 1, 1, '#fff15a');
+    txt('1%', x + 4, y - 4 + bob, 6, '#ffd000', 'center');
+  } else {
+    R(x + 1, y + bob, 6, 3, hair);
+    const ex = dir < 0 ? -1 : dir > 0 ? 1 : 0; R(x + 2 + ex, y + 4 + bob, 1, 1, '#111'); R(x + 5 + ex, y + 4 + bob, 1, 1, '#111');
+  }
 }
 function txt(s, x, y, size, col, al) {
   ctx.font = 'bold ' + (size || 11) + 'px "Courier New",monospace';
@@ -62,13 +72,16 @@ function drawFloor(f, t) {
   }
   const key = res ? 'assignedResidenceFloorId' : 'assignedJobFloorId';
   const list = S.surv.filter(s => s[key] === f.id);
-  list.forEach(s => { const w = walkers[s.id] || { x: 20 }; figure(w.x, fy - 21, s.id, t, w.moving, w.dir); });
+  list.forEach(s => { const w = walkers[s.id] || { x: 20 }; figure(w.x, fy - 21, s.id, t, w.moving, w.dir, s.rare === true); });
   const lab = 'B' + f.depth + ' ' + f.name; ctx.font = 'bold 11px "Courier New",monospace';
   R(12, y + 9, ctx.measureText(lab).width + 10, 14, '#000b'); R(12, y + 9, 3, 14, res ? '#c9a070' : '#ffffff88'); txt(lab, 19, y + 20, 11, '#f1e6cc');
   if (!res) {
     R(SX - 72, y + 9, 56, 14, '#000b');
     if (f.type === 'ENERGY') txt('+' + POWER_PER_ENERGY_ROOM + ' POWER', SX - 20, y + 20, 9, '#ffe36b', 'right');
-    else if (isPowered(f)) txt('+' + income(f).toFixed(1) + '/s', SX - 20, y + 20, 10, '#ffe9a8', 'right');
+    else if (isPowered(f)) {
+      const rareRoom = roomIncomeMultiplier(f) === 4;
+      txt((rareRoom ? '4X ' : '') + '+' + income(f).toFixed(1) + '/s', SX - 20, y + 20, rareRoom ? 9 : 10, rareRoom ? '#ffd000' : '#ffe9a8', 'right');
+    }
     else txt('NO POWER', SX - 20, y + 20, 9, '#ff8c75', 'right');
   }
   txt(list.length + '/5', SX - 20, y + FH - 6, 10, '#fffc', 'right');
@@ -89,7 +102,9 @@ export function draw(t) {
   });
   R(0, -14, W, 14, '#4a3b2c'); R(0, -14, W, 3, '#5b6b3a');
   ctx.fillStyle = ctx.createPattern(dirt, 'repeat'); ctx.fillRect(0, 0, W, bottom + 900);
-  R(SX - 2, -FH, W - SX - 6, bottom + FH, '#0a0908'); R(SX - 2, -FH, 3, bottom + FH, '#444'); R(W - 8, -FH, 3, bottom + FH, '#444');
+  ctx.fillStyle = ctx.createPattern(dirt, 'repeat'); ctx.fillRect(SX - 2, -FH, W - SX - 6, bottom + FH);
+  R(SX - 2, -FH, W - SX - 6, bottom + FH, '#38291f99');
+  R(SX - 2, -FH, 3, bottom + FH, '#66513b'); R(W - 8, -FH, 3, bottom + FH, '#66513b');
   R(SX - 8, -FH - 10, 92, 10, '#555');
   for (let i = 0; i < 92; i += 16) R(SX - 8 + i, -FH - 8, 8, 6, '#e0a030');
   txt('SURFACE GATE', 14, -FH + 18, 11, '#cfe0f0');

@@ -26,15 +26,16 @@ export const SAVE_KEY = 'tiny-bunker-save-v1';
 export const fresh = () => ({
   v: 1, scrap: 1500, bat: 10, nid: 100,
   floors: [], surv: [], queue: [], build: null,
-  elev: { pos: 0, sl: 0, tl: 0, pax: [] }, delivered: 0
+  elev: { pos: 0, sl: 0, tl: 0, pax: [] }, delivered: 0, shopSpinAt: 0
 });
 export let S = fresh();
 export const setState = s => { S = s; };
 
-export const mkSurvivor = () => {
+export const mkSurvivor = (forceRare = false) => {
   const stats = {}; TK.forEach(k => stats[k] = rnd(1, 10));
+  const rare = forceRare || Math.random() < 0.01;
   return {
-    id: 'survivor_' + S.nid++, name: pick(FN) + ' ' + pick(LN), stats,
+    id: 'survivor_' + S.nid++, name: rare ? 'Golden Survivor' : pick(FN) + ' ' + pick(LN), stats, rare,
     dreamFloorType: pick(TK), assignedJobFloorId: null, assignedResidenceFloorId: null
   };
 };

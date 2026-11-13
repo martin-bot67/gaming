@@ -19,10 +19,36 @@ export const isPowered = f => {
   if (f.cat !== 'COMMERCIAL' || f.type === 'ENERGY') return false;
   return productiveFloors().slice(0, energyCapacity()).some(room => room.id === f.id);
 };
+export const roomIncomeMultiplier = f => S.surv.some(s => s.assignedJobFloorId === f.id && s.rare === true) ? 4 : 1;
 export const income = f => S.surv.filter(s => s.assignedJobFloorId === f.id)
-  .reduce((a, s) => a + (1 + s.stats[f.type] * 0.2) * (s.dreamFloorType === f.type ? 1.5 : 1), 0) * (1 + f.depth * 0.15) * 0.65;
+  .reduce((a, s) => a + (1 + s.stats[f.type] * 0.2) * (s.dreamFloorType === f.type ? 1.5 : 1), 0) * (1 + f.depth * 0.15) * 0.65 * 1.35 * roomIncomeMultiplier(f);
 export const elevSpeed = () => 120 + 40 * S.elev.sl;
 export const tipMult = () => 1 + 0.25 * S.elev.tl;
+export const SHOP_SPIN_COOLDOWN_MS = 15 * 60 * 1000;
+export const SHOP_WHEEL_PRIZES = [
+  { kind: 'scrap', amount: 100, color: '#4c853b' },
+  { kind: 'batteries', amount: 1, color: '#367a91' },
+  { kind: 'scrap', amount: 500, color: '#b27432' },
+  { kind: 'batteries', amount: 5, color: '#8f4d75' },
+  { kind: 'scrap', amount: 1000, color: '#4d65a5' },
+  { kind: 'batteries', amount: 25, color: '#78963a' },
+  { kind: 'scrap', amount: 10000, color: '#9a5a42' },
+  { kind: 'batteries', amount: 50, color: '#6c59a0' }
+];
+export const shopSpinCooldownRemaining = () => Math.max(0, SHOP_SPIN_COOLDOWN_MS - (Date.now() - (S.shopSpinAt || 0)));
+export function spinShopWheel() {
+  if (shopSpinCooldownRemaining() > 0) {
+    say('The wheel is still recharging.');
+    return null;
+  }
+  const slice = rnd(0, SHOP_WHEEL_PRIZES.length - 1);
+  const prize = { ...SHOP_WHEEL_PRIZES[slice], slice };
+  if (prize.kind === 'scrap') S.scrap += prize.amount;
+  else S.bat += prize.amount;
+  S.shopSpinAt = Date.now();
+  say('Wheel prize: ' + prize.amount + ' ' + prize.kind + '!');
+  return prize;
+}
 
 export function assignAll() {
   for (const s of S.surv) {
@@ -66,9 +92,17 @@ export function adminAddScrap() { S.scrap += 1000000; say('Added 1,000,000 scrap
 export function adminAddBatteries() { S.bat += 1000000; say('Added 1,000,000 batteries.'); }
 export function adminSpawnSurvivor() {
   if (housingUsed() >= housingCapacity()) return say('No empty bunks. Build a residential floor.');
-  S.surv.push(mkSurvivor());
+  const survivor = mkSurvivor();
+  S.surv.push(survivor);
   assignAll();
-  say('Survivor spawned.');
+  say(survivor.rare ? 'Golden Survivor! Their staffed room earns 4x.' : 'Survivor spawned.');
+}
+export function adminSpawnRareSurvivor() {
+  if (housingUsed() >= housingCapacity()) return say('No empty bunks. Build a residential floor.');
+  const survivor = mkSurvivor(true);
+  S.surv.push(survivor);
+  assignAll();
+  say('Golden Survivor spawned! Their staffed room earns 4x.');
 }
 export function adminCompleteBuild() {
   if (!S.build) return say('No build in progress.');
@@ -85,6 +119,7 @@ export function deliver(p) {
   outs.push({ depth: t, x: SX + 8, t: 2.2, id: 'r' + p.id, dir: -1 });
   const ns = mkSurvivor(); walkers[ns.id] = { x: SX - 30, tx: 0, wait: 0 };
   S.surv.push(ns); assignAll();
+  if (ns.rare) say('Golden Survivor! Their staffed room earns 4x.');
 }
 
 export const EXT_COST = 6000;

@@ -14,8 +14,16 @@ button:disabled{opacity:.4;cursor:default}
 #modal[hidden]{display:none}
 .card{background:var(--panel);border:2px solid var(--line);padding:14px;margin-top:40px}
 .card h2{margin:0 0 10px;font-size:18px;color:var(--hi)}
+.card h3{margin:14px 0 6px;font-size:14px;color:var(--hi)}
 .card p{margin:6px 0;color:var(--dim);font-size:13px;line-height:1.4}
 .row{display:flex;gap:8px;margin-top:10px}
+.wheel-pointer{position:relative;z-index:1;width:0;height:0;margin:12px auto -8px;border-left:10px solid transparent;border-right:10px solid transparent;border-top:18px solid var(--hi)}
+.shop-wheel{position:relative;width:180px;height:180px;margin:0 auto;border:5px solid #6b5132;border-radius:50%;transition:transform 3.1s cubic-bezier(.12,.72,.08,1);box-shadow:0 0 0 3px #241b13,0 4px 12px #000b}
+.shop-wheel span{position:absolute;top:50%;left:50%;display:flex;width:60px;flex-direction:column;align-items:center;margin:-12px 0 0 -30px;color:#fff4d8;text-shadow:0 1px 2px #000;font-weight:bold;text-align:center;transform:rotate(var(--slice-angle)) translateY(-64px) rotate(calc(-1 * var(--slice-angle)))}
+.shop-wheel span strong{font-size:9px;line-height:11px}
+.shop-wheel span small{font-size:6px;line-height:8px}
+.shop-wheel span:nth-child(1){--slice-angle:22.5deg}.shop-wheel span:nth-child(2){--slice-angle:67.5deg}.shop-wheel span:nth-child(3){--slice-angle:112.5deg}.shop-wheel span:nth-child(4){--slice-angle:157.5deg}.shop-wheel span:nth-child(5){--slice-angle:202.5deg}.shop-wheel span:nth-child(6){--slice-angle:247.5deg}.shop-wheel span:nth-child(7){--slice-angle:292.5deg}.shop-wheel span:nth-child(8){--slice-angle:337.5deg}
+.shop-wheel i{position:absolute;top:50%;left:50%;width:22px;height:22px;margin:-11px;border:3px solid #6b5132;border-radius:50%;background:#e0a030}
 select,textarea{width:100%;background:#0e0c0a;border:2px solid var(--line);padding:8px}
 textarea{height:110px;font-size:11px}
 #admin{position:absolute;z-index:2;left:8px;bottom:72px}
@@ -24,3 +32,5 @@ textarea{height:110px;font-size:11px}
 #admin-panel[hidden]{display:none}
 #admin-panel h2{margin:0 0 8px;color:var(--hi);font-size:14px}
 #admin-panel button{display:block;width:100%;margin-top:6px;padding:8px 4px;flex:none;font-size:11px}
+#admin-login input{width:100%;background:#0e0c0a;border:2px solid var(--line);padding:8px;color:var(--ink);font:inherit}
+#admin-login-error{margin:6px 0 0;color:#e07050;font-size:11px}

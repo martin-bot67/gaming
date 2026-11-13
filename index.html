@@ -14,17 +14,26 @@
     <button id="bDown" aria-label="Elevator down">Down</button>
     <button data-act="open-build">Build</button>
     <button data-act="open-up">Upgrade</button>
+    <button data-act="open-shop">Shop</button>
     <button data-act="open-save">Save</button>
   </div>
   <div id="admin">
     <button id="admin-toggle" aria-expanded="false" aria-controls="admin-panel">Admin</button>
     <div id="admin-panel" hidden>
       <h2>Admin panel</h2>
-      <button data-admin-act="add-scrap">Add 1,000,000 scrap</button>
-      <button data-admin-act="add-batteries">Add 1,000,000 batteries</button>
-      <button data-admin-act="spawn-survivor">Spawn survivor</button>
-      <button data-admin-act="complete-build">Complete build</button>
-      <button data-admin-act="reset-game">Reset game</button>
+      <form id="admin-login">
+        <input id="admin-password" type="password" placeholder="Password" aria-label="Admin password" autocomplete="off" required>
+        <button type="submit">Unlock</button>
+        <p id="admin-login-error" role="alert" hidden>Incorrect password.</p>
+      </form>
+      <div id="admin-actions" hidden>
+        <button data-admin-act="add-scrap">Add 1,000,000 scrap</button>
+        <button data-admin-act="add-batteries">Add 1,000,000 batteries</button>
+        <button data-admin-act="spawn-survivor">Spawn survivor</button>
+        <button data-admin-act="spawn-rare-survivor">Spawn Golden Survivor</button>
+        <button data-admin-act="complete-build">Complete build</button>
+        <button data-admin-act="reset-game">Reset game</button>
+      </div>
     </div>
   </div>
   <div id="modal" hidden></div>
